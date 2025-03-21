@@ -27,9 +27,9 @@ jobs:
       - name: Install noVNC and VNC Server
         run: |
           sudo apt update
-          sudo apt install -y x11vnc fluxbox websockify
+          sudo apt install -y x11vnc fluxbox websockify novnc
           mkdir -p ~/.vnc
-          echo "password" | vncpasswd -f > ~/.vnc/passwd
+          echo "password" | x11vnc -storepasswd ~/.vnc/passwd
           chmod 600 ~/.vnc/passwd
 
       - name: Launch Android Emulator
@@ -52,7 +52,7 @@ jobs:
         run: |
           export DISPLAY=:0
           fluxbox &  # Lightweight GUI
-          x11vnc -display :0 -forever -passwd password -rfbport 5900 &
+          x11vnc -forever -usepw -rfbport 5900 -display :0 &
 
       - name: Start noVNC
         run: |
