@@ -1,4 +1,3 @@
-
 name: Android Emulator with noVNC
 
 on:
@@ -30,7 +29,7 @@ jobs:
           sudo apt update
           sudo apt install -y x11vnc fluxbox websockify novnc
           mkdir -p ~/.vnc
-          echo "password" | x11vnc -storepasswd ~/.vnc/passwd
+          echo "mypassword" | vncpasswd -f > ~/.vnc/passwd
           chmod 600 ~/.vnc/passwd
 
       - name: Launch Android Emulator
@@ -53,13 +52,13 @@ jobs:
         run: |
           export DISPLAY=:0
           fluxbox &  # Lightweight GUI
-          x11vnc -forever -usepw -rfbport 5900 -display :0 &
+          x11vnc -forever -rfbauth ~/.vnc/passwd -rfbport 5900 -display :0 &
 
       - name: Start noVNC
         run: |
-          websockify --web=/usr/share/novnc/ --wrap-mode=ignore 6080 localhost:5900 &
+          websockify --web=/usr/share/novnc/ 6080 localhost:5900 &
 
       - name: Show Access Link
         run: |
-          echo "✅ noVNC Running!"
+          echo "✅ noVNC is running!"
           echo "➡️ Open this link to access the emulator: http://localhost:6080/vnc.html?host=localhost&port=6080"
