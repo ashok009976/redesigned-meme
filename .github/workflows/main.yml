@@ -1,10 +1,7 @@
 name: Android Emulator with noVNC
 
-on:
+on:  
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   run-emulator:
@@ -12,53 +9,35 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository  
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install noVNC and VNC Server
+      - name: Install Dependencies  
         run: |
           sudo apt update
           sudo apt install -y x11vnc fluxbox websockify novnc
+
+      - name: Set VNC Password  
+        run: |
           mkdir -p ~/.vnc
           echo "mypassword" | vncpasswd -f > ~/.vnc/passwd
           chmod 600 ~/.vnc/passwd
 
-      - name: Launch Android Emulator
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 33
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6_pro
-          ram-size: 4096M
-          disk-size: 8192M
-          hw-gpu-mode: auto
-          disable-spellchecker: true
-          script: |
-            adb wait-for-device shell 'while [[ "$(getprop sys.boot_completed)" != "1" ]]; do sleep 1; done'
-            adb install -r ./app/build/outputs/apk/debug/app-debug.apk
-            adb shell monkey -p com.example.app -c android.intent.category.LAUNCHER 1
-
-      - name: Start VNC Server
+      - name: Start Fluxbox (GUI)  
         run: |
           export DISPLAY=:0
-          fluxbox &  # Lightweight GUI
+          fluxbox &
+
+      - name: Start VNC Server  
+        run: |
           x11vnc -forever -rfbauth ~/.vnc/passwd -rfbport 5900 -display :0 &
 
-      - name: Start noVNC
+      - name: Start noVNC  
         run: |
           websockify --web=/usr/share/novnc/ 6080 localhost:5900 &
 
-      - name: Show Access Link
+      - name: Show noVNC Access Link  
         run: |
           echo "✅ noVNC is running!"
-          echo "➡️ Open this link to access the emulator: http://localhost:6080/vnc.html?host=localhost&port=6080"
+          echo "➡️ Open this link in your browser:"
+          echo "http://localhost:6080/vnc.html?host=localhost&port=6080"
