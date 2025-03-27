@@ -54,11 +54,13 @@ jobs:
           script: |
             sleep 60  # Wait for emulator to boot
             echo "Emulator is running!"
-            sleep 3000  # Keep running for 50 minutes
+            # No sleep here; emulator runs in background
 
       # Step 8: Start VNC Server
       - name: Start VNC Server
         run: |
+          sleep 5  # Ensure Fluxbox is ready
+          export DISPLAY=:0
           x11vnc -forever -rfbauth ~/.vnc/passwd -rfbport 5900 &
 
       # Step 9: Start noVNC
@@ -66,7 +68,7 @@ jobs:
         run: |
           websockify --web=/usr/share/novnc/ 6080 localhost:5900 &
 
-      # Step 10: Show Direct URL
+      # Step 10: Show Direct URL and Keep Running
       - name: Show Direct URL
         run: |
           lt --port 6080 > url.txt &
@@ -74,4 +76,4 @@ jobs:
           cat url.txt
           echo "Password: mypassword"
           echo "Copy the URL above and open it in your browser!"
-          sleep 3000  # Keep tunnel alive
+          sleep 3000  # Keep tunnel alive for 50 minutes
