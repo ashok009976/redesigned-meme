@@ -1,4 +1,4 @@
-name: Android Emulator with noVNC and Localtunnel
+name: Simple Android Emulator with noVNC
 
 on:
   workflow_dispatch: # Manual trigger
@@ -6,20 +6,20 @@ on:
 jobs:
   run-emulator:
     runs-on: ubuntu-latest
-    timeout-minutes: 60 # 1-hour timeout, adjustable up to 360
+    timeout-minutes: 60 # 1-hour timeout
 
     steps:
       # Step 1: Checkout Repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # Step 2: Install Dependencies (VNC, noVNC, Fluxbox, Android tools)
+      # Step 2: Install Basic Dependencies
       - name: Install Dependencies
         run: |
           sudo apt update
-          sudo apt install -y x11vnc fluxbox websockify novnc tightvncserver qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils openjdk-17-jdk nodejs npm
+          sudo apt install -y x11vnc fluxbox websockify novnc tightvncserver openjdk-17-jdk nodejs npm
 
-      # Step 3: Install Localtunnel (no sign-in required)
+      # Step 3: Install Localtunnel
       - name: Install Localtunnel
         run: |
           sudo npm install -g localtunnel
@@ -32,62 +32,46 @@ jobs:
       - name: Set VNC Password
         run: |
           mkdir -p ~/.vnc
-          echo "mypassword" | tightvncpasswd -f > ~/.vnc/passwd
+          echo "mypassword" > ~/.vnc/passwd
           chmod 600 ~/.vnc/passwd
 
       # Step 6: Start Fluxbox (GUI)
       - name: Start Fluxbox
         run: |
-          export DISPLAY=:0
           fluxbox &
 
-      # Step 7: Launch Android Emulator
-      - name: Launch Powerful Android Emulator
+      # Step 7: Launch Simple Android Emulator
+      - name: Launch Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 33          # Android 13
-          target: google_apis    # Play Store support
-          arch: x86_64          # Fast architecture
-          profile: pixel_6_pro   # High-end device
-          ram-size: 4096M       # 4GB RAM
-          disk-size: 8192M      # 8GB storage
-          hw-gpu-mode: auto     # GPU attempt
+          api-level: 29        # Android 10, lightweight
+          target: default      # Basic target
+          arch: x86            # Simpler architecture
+          profile: pixel_2     # Small device
+          ram-size: 1536M      # 1.5GB RAM
+          disk-size: 2048M     # 2GB storage
+          hw-gpu-mode: off     # No GPU
           script: |
-            # Install an APK (replace with your path)
-            adb install ./app/build/outputs/apk/debug/app-debug.apk
-            # Launch the app (replace with your package name)
-            adb shell monkey -p com.example.app 1
-            # Keep running
-            sleep 3000  # 50 minutes
+            sleep 60  # Wait for emulator to boot
+            echo "Emulator is running!"
+            sleep 3000  # Keep running for 50 minutes
 
       # Step 8: Start VNC Server
       - name: Start VNC Server
         run: |
-          x11vnc -forever -rfbauth ~/.vnc/passwd -rfbport 5900 -display :0 &
+          x11vnc -forever -rfbauth ~/.vnc/passwd -rfbport 5900 &
 
       # Step 9: Start noVNC
       - name: Start noVNC
         run: |
           websockify --web=/usr/share/novnc/ 6080 localhost:5900 &
 
-      # Step 10: Expose noVNC with Localtunnel (no sign-in)
-      - name: Expose noVNC with Localtunnel
+      # Step 10: Show Direct URL
+      - name: Show Direct URL
         run: |
-          lt --port 6080 > localtunnel.log 2>&1 &
-          sleep 10 # Wait for tunnel to establish
-          TUNNEL_URL=$(grep -o 'https://[^ ]*' localtunnel.log)
-          echo "✅ noVNC is running!"
-          echo "➡️ Access it online at: $TUNNEL_URL"
-          # Keep job alive to maintain tunnel
-          sleep 3000  # Match emulator runtime
-
-      # Step 11: Upload Artifacts
-      - name: Upload Logs and APK
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: emulator-output
-          path: |
-            ~/.android/emulator.log
-            ./app/build/outputs/apk/**/*.apk
-            localtunnel.log
+          lt --port 6080 > url.txt &
+          sleep 15
+          cat url.txt
+          echo "Password: mypassword"
+          echo "Copy the URL above and open it in your browser!"
+          sleep 3000  # Keep tunnel alive
